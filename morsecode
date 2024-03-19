@@ -1,0 +1,50 @@
+ // Define pins
+#define BUTTON_PIN 46 // Pin connected to the pushbutton
+#define RELAY_PIN 44  // Pin connected to the relay module
+#define LED_PIN 42    // Pin connected to the LED (built-in LED on most Arduino boards)
+
+// Define variables
+bool doorLocked = true; // Variable to store the state of the door lock (initially locked)
+
+// Define Morse code patterns
+const int dotDuration = 250; // Duration of a dot in milliseconds
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Set the pushbutton pin as input with internal pull-up resistor
+  pinMode(RELAY_PIN, OUTPUT); // Set the relay pin as output
+  pinMode(LED_PIN, OUTPUT);   // Set the LED pin as output
+}
+
+void loop() {
+  // Check if the pushbutton is pressed
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    // If the door is locked, unlock it using Morse code
+    if (doorLocked) {
+      doorLocked = false; // Set the door lock state to unlocked
+      unlockWithMorseCode();
+      digitalWrite(RELAY_PIN, HIGH); // Activate the relay module (unlock the solenoid lock)
+      delay(3000); // Keep the solenoid lock unlocked for 3 seconds
+      digitalWrite(RELAY_PIN, LOW); // Deactivate the relay module (lock the solenoid lock)
+    }
+  }
+}
+
+// Function to unlock with Morse code
+void unlockWithMorseCode() {
+  // Morse code for "SOS"
+  const int morseCode[] = {1,1,1,0,0,0,1,1,1,0,0,0,1,1,1}; // S=3 dots, O=3 dashes
+
+  for (int i = 0; i < sizeof(morseCode) / sizeof(morseCode[0]); i++) {
+    if (morseCode[i] == 1) {
+      // Dot
+      digitalWrite(LED_PIN, HIGH);
+      delay(dotDuration);
+    } else {
+      // Dash
+      digitalWrite(LED_PIN, HIGH);
+      delay(dotDuration * 3); // Dash is 3 times longer than dot
+    }
+    digitalWrite(LED_PIN, LOW);
+    delay(dotDuration); // Pause between dots and dashes
+  }
+}
