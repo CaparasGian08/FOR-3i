@@ -1,0 +1,85 @@
+#include <Servo.h>
+
+const int BUTTON_PIN = 3;
+const int RELAY_PIN = 9;
+const int LED_LOCKED_PIN = 10;
+const int LED_UNLOCKED_PIN = 11;
+
+const int PRESS = HIGH;
+const int NOPRESS = LOW;
+
+bool isOpen = false;
+unsigned int storageIndex = 0;
+int storage[10];
+int combinationUpper[10] = { 200, 200, 200, 100, 200, 200, 100, 100, 200, 100 };
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(BUTTON_PIN, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(LED_LOCKED_PIN, OUTPUT);
+  pinMode(LED_UNLOCKED_PIN, OUTPUT);
+}
+
+void loop() {
+  unsigned int pressCount = 0;
+  unsigned int noPressCount = 0;
+
+  if (digitalRead(BUTTON_PIN) == PRESS) {
+    while (digitalRead(BUTTON_PIN) == PRESS) {
+      pressCount += 1;
+      delay(5);
+    }
+  }
+
+  if (digitalRead(BUTTON_PIN) == NOPRESS && pressCount > 0) {
+    storage[storageIndex] = pressCount;
+    Serial.print("index and value: ");
+    Serial.println(storageIndex);
+    Serial.println(pressCount);
+    storageIndex += 1;
+
+    if (check() == 10) {
+      isOpen = true;
+      digitalWrite(RELAY_PIN, HIGH); // Activate the relay to unlock the solenoid
+      digitalWrite(LED_UNLOCKED_PIN, HIGH); // Turn on the LED to indicate unlocked
+      digitalWrite(LED_LOCKED_PIN, LOW); // Turn off the LED to indicate locked
+      Serial.println("Open!");
+    }
+
+    while (digitalRead(BUTTON_PIN) == NOPRESS) {
+      noPressCount += 1;
+      if (noPressCount >= 3000) {
+        isOpen = false;
+        wipe();
+        digitalWrite(RELAY_PIN, LOW); // Deactivate the relay
+        digitalWrite(LED_UNLOCKED_PIN, LOW); // Turn off the LED
+        digitalWrite(LED_LOCKED_PIN, HIGH); // Turn on the LED to indicate locked
+        Serial.println("Wiping");
+        check();
+      }
+      delay(5);
+    }
+  }
+}
+
+int check() {
+  unsigned int check = 0;
+  for (int i = 0; i <= 9; i++) {
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(storage[i]);
+    if (storage[i] <= combinationUpper[i] && storage[i] > (combinationUpper[i] - 100)) {
+      check += 1;
+    }
+  }
+  Serial.print("Check: ");
+  Serial.println(check);
+  return check;
+}
+
+void wipe() {
+  for (int i = 1; i <= 10; i++) {
+    storage[i] = 0;
+  }
+}
